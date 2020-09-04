@@ -1,5 +1,6 @@
 package com.e.deteccionapi;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Bitmap;
@@ -11,11 +12,15 @@ import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.util.SparseArray;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.google.android.gms.vision.Frame;
+import com.google.android.gms.vision.face.Face;
+import com.google.android.gms.vision.face.FaceDetector;
 import com.google.api.client.extensions.android.json.AndroidJsonFactory;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.services.vision.v1.Vision;
@@ -31,6 +36,7 @@ import com.google.api.services.vision.v1.model.Landmark;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -38,6 +44,11 @@ public class MainActivity extends AppCompatActivity {
 
     Vision vision;
     List<Landmark> puntos;
+
+  /*  List<Float> iniciox = new ArrayList<Float>();
+    List<Float> inicioy = new ArrayList<Float>();
+    List<Float> finx = new ArrayList<Float>();
+    List<Float> finy = new ArrayList<Float>();*/
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
         visionBuilder.setVisionRequestInitializer(new
                 VisionRequestInitializer("AIzaSyB5MkIB5lNnQH1kC1tZ3ATeEsv7z66moKs"));
         vision = visionBuilder.build();
+
+
     }
 
     public Image getImageToProcess() {
@@ -111,6 +124,12 @@ public class MainActivity extends AppCompatActivity {
                     for (int i = 0; i < numberOfFaces; i++) {
                         likelihoods += "\n Rostro " + i + "  " + faces.get(i).getJoyLikelihood();
                         puntos = faces.get(i).getLandmarks();
+                       /* iniciox.add(puntos.get(31).getPosition().getX());
+                        inicioy.add(puntos.get(31).getPosition().getY());
+                        finx.add(puntos.get(32).getPosition().getY());
+                        finy.add(puntos.get(32).getPosition().getY());*/
+                        //Con una clase hace que la app se cierre, así que guardé por separado en listas
+                        //caras.add(new Cara(puntos.get(30).getPosition().getX(),puntos.get(30).getPosition().getY(),puntos.get(31).getPosition().getX(),puntos.get(31).getPosition().getY()));
                     }
                     final String message = "Esta imagen tiene " + numberOfFaces + " rostros " + likelihoods;
                     runOnUiThread(new Runnable() {
@@ -119,23 +138,20 @@ public class MainActivity extends AppCompatActivity {
                             TextView imageDetail = (TextView) findViewById(R.id.txtResult);
                             //imageDetail.setText(text.getText());
                             imageDetail.setText(message.toString());
+                            DibujarCuadros();
                         }
                     });
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
-                try {DibujarCuadros();}catch (Exception e){}
             }
         });
-
-
-
-
     }
 
 
     public void DibujarCuadros(){
 
+//        for(int i = 0; i<iniciox.size();i++) {
         ImageView imv = findViewById(R.id.imgImgToProcess);
         Bitmap img_original = ((BitmapDrawable) imv.getDrawable()).getBitmap();
         Bitmap tempBitmap = Bitmap.createBitmap(img_original.getWidth(), img_original.getHeight(), Bitmap.Config.RGB_565);
@@ -147,7 +163,32 @@ public class MainActivity extends AppCompatActivity {
         paint.setStyle(Paint.Style.STROKE);
         //canvas.drawRoundRect(new RectF(puntos.get(31).getPosition().getX(), puntos.get(31).getPosition().getY(), puntos.get(32).getPosition().getX(), puntos.get(32).getPosition().getY()), 2, 2, paint);
         //canvas.drawRoundRect(, paint);
-        canvas.drawRect(puntos.get(31).getPosition().getX(), puntos.get(31).getPosition().getY(), puntos.get(32).getPosition().getX(), puntos.get(32).getPosition().getY(),paint);
+        //canvas.drawRect(c.getP1x(,c.getP1y(),c.getP2x(),c.getP2y(),paint
+        //canvas.drawRect(iniciox.get(i),inicioy.get(i),finx.get(i),finy.get(i),paint);
+       /* canvas.drawRect(Float.valueOf(puntos.get(10).getPosition().getX()*2),
+                Float.valueOf(puntos.get(10).getPosition().getY()*2),
+                Float.valueOf(puntos.get(21).getPosition().getX()*2),
+                Float.valueOf(puntos.get(21).getPosition().getY()*2),paint);
+
+        imv.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));*/
+
+
+            FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false).build();
+            if(!faceDetector.isOperational())
+                Toast.makeText(getApplicationContext(),"No se puede cargar las caras",Toast.LENGTH_LONG).show();
+
+            Frame frame = new Frame.Builder().setBitmap(img_original).build();
+            SparseArray<Face> caras = faceDetector.detect(frame);
+
+            for(int i = 0; i<caras.size(); i++){
+                Face cara_actual = caras.valueAt(i);
+                float xinicio = cara_actual.getPosition().x;
+                float yinicio = cara_actual.getPosition().y;
+                float xfin = xinicio+cara_actual.getWidth();
+                float yfin = yinicio+cara_actual.getHeight();
+                canvas.drawRoundRect(new RectF(xinicio,yinicio,xfin,yfin),2,2,paint);
+            }
+      //  }
         imv.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
     }
 
@@ -168,6 +209,8 @@ public class MainActivity extends AppCompatActivity {
         }
         return Bitmap.createScaledBitmap(bitmap, resizedWidth, resizedHeight, false);
     }
+
+
 
 
 }

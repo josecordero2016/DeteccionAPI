@@ -13,20 +13,10 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_alignParentEnd="true"
-        android:layout_marginTop="203dp"
-        android:layout_marginEnd="172dp"
+        android:layout_marginTop="271dp"
+        android:layout_marginEnd="157dp"
         android:onClick="ProcesarTexto"
-        android:text="OCR" />
-
-    <ImageView
-        android:id="@+id/imgImgToProcess"
-        android:layout_width="400dp"
-        android:layout_height="170dp"
-        android:layout_alignParentStart="true"
-        android:layout_alignParentTop="true"
-        android:layout_marginStart="6dp"
-        android:layout_marginTop="14dp"
-        app:srcCompat="@drawable/familia" />
+        android:text="Procesar" />
 
     <TextView
         android:id="@+id/txtResult"
@@ -34,8 +24,18 @@
         android:layout_height="wrap_content"
         android:layout_alignParentStart="true"
         android:layout_alignParentTop="true"
-        android:layout_marginStart="12dp"
-        android:layout_marginTop="275dp"
+        android:layout_marginStart="7dp"
+        android:layout_marginTop="323dp"
         android:text="Resultado de la API" />
+
+    <ImageView
+        android:id="@+id/imgImgToProcess"
+        android:layout_width="wrap_content"
+        android:layout_height="248dp"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="3dp"
+        android:layout_marginTop="12dp"
+        app:srcCompat="@drawable/famosos" />
 
 </RelativeLayout>
