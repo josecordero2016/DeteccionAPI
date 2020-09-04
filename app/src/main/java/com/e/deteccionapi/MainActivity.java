@@ -45,11 +45,6 @@ public class MainActivity extends AppCompatActivity {
     Vision vision;
     List<Landmark> puntos;
 
-  /*  List<Float> iniciox = new ArrayList<Float>();
-    List<Float> inicioy = new ArrayList<Float>();
-    List<Float> finx = new ArrayList<Float>();
-    List<Float> finy = new ArrayList<Float>();*/
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -109,27 +104,11 @@ public class MainActivity extends AppCompatActivity {
                     BatchAnnotateImagesResponse response = annotateRequest.execute();
                     List<FaceAnnotation> faces = response.getResponses().get(0).getFaceAnnotations();
 
-                    //final StringBuilder message = new StringBuilder("Se ha encontrado los siguientes Objetos:\n\n");
-                    // final TextAnnotation text = response.getResponses().get(0).getFullTextAnnotation();
-                    /*List<EntityAnnotation> labels = response.getResponses().get(0).getLabelAnnotations();
-                    if (labels != null) {
-                        for (EntityAnnotation label : labels)
-                               message.append(String.format(Locale.US, "%.2f: %s\n",
-                                       label.getScore()*100, label.getDescription()));
-                    } else {
-                        message.append("No hay ningún Objeto");
-                    }*/
                     int numberOfFaces = faces.size();
                     String likelihoods = "";
                     for (int i = 0; i < numberOfFaces; i++) {
                         likelihoods += "\n Rostro " + i + "  " + faces.get(i).getJoyLikelihood();
                         puntos = faces.get(i).getLandmarks();
-                       /* iniciox.add(puntos.get(31).getPosition().getX());
-                        inicioy.add(puntos.get(31).getPosition().getY());
-                        finx.add(puntos.get(32).getPosition().getY());
-                        finy.add(puntos.get(32).getPosition().getY());*/
-                        //Con una clase hace que la app se cierre, así que guardé por separado en listas
-                        //caras.add(new Cara(puntos.get(30).getPosition().getX(),puntos.get(30).getPosition().getY(),puntos.get(31).getPosition().getX(),puntos.get(31).getPosition().getY()));
                     }
                     final String message = "Esta imagen tiene " + numberOfFaces + " rostros " + likelihoods;
                     runOnUiThread(new Runnable() {
@@ -150,8 +129,6 @@ public class MainActivity extends AppCompatActivity {
 
 
     public void DibujarCuadros(){
-
-//        for(int i = 0; i<iniciox.size();i++) {
         ImageView imv = findViewById(R.id.imgImgToProcess);
         Bitmap img_original = ((BitmapDrawable) imv.getDrawable()).getBitmap();
         Bitmap tempBitmap = Bitmap.createBitmap(img_original.getWidth(), img_original.getHeight(), Bitmap.Config.RGB_565);
@@ -159,36 +136,23 @@ public class MainActivity extends AppCompatActivity {
         canvas.drawBitmap(img_original, 0, 0, null);
         Paint paint = new Paint();
         paint.setColor(Color.RED);
-        paint.setStrokeWidth(5);
+        paint.setStrokeWidth(10);
         paint.setStyle(Paint.Style.STROKE);
-        //canvas.drawRoundRect(new RectF(puntos.get(31).getPosition().getX(), puntos.get(31).getPosition().getY(), puntos.get(32).getPosition().getX(), puntos.get(32).getPosition().getY()), 2, 2, paint);
-        //canvas.drawRoundRect(, paint);
-        //canvas.drawRect(c.getP1x(,c.getP1y(),c.getP2x(),c.getP2y(),paint
-        //canvas.drawRect(iniciox.get(i),inicioy.get(i),finx.get(i),finy.get(i),paint);
-       /* canvas.drawRect(Float.valueOf(puntos.get(10).getPosition().getX()*2),
-                Float.valueOf(puntos.get(10).getPosition().getY()*2),
-                Float.valueOf(puntos.get(21).getPosition().getX()*2),
-                Float.valueOf(puntos.get(21).getPosition().getY()*2),paint);
 
-        imv.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));*/
+        FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false).build();
 
+        Frame frame = new Frame.Builder().setBitmap(img_original).build();
+        SparseArray<Face> caras = faceDetector.detect(frame);
 
-            FaceDetector faceDetector = new FaceDetector.Builder(getApplicationContext()).setTrackingEnabled(false).build();
-            if(!faceDetector.isOperational())
-                Toast.makeText(getApplicationContext(),"No se puede cargar las caras",Toast.LENGTH_LONG).show();
+        for (int i = 0; i < caras.size(); i++) {
+            Face cara_actual = caras.valueAt(i);
+            float xinicio = cara_actual.getPosition().x;
+            float yinicio = cara_actual.getPosition().y;
+            float xfin = xinicio + cara_actual.getWidth();
+            float yfin = yinicio + cara_actual.getHeight();
+            canvas.drawRoundRect(new RectF(xinicio, yinicio, xfin, yfin), 2, 2, paint);
+        }
 
-            Frame frame = new Frame.Builder().setBitmap(img_original).build();
-            SparseArray<Face> caras = faceDetector.detect(frame);
-
-            for(int i = 0; i<caras.size(); i++){
-                Face cara_actual = caras.valueAt(i);
-                float xinicio = cara_actual.getPosition().x;
-                float yinicio = cara_actual.getPosition().y;
-                float xfin = xinicio+cara_actual.getWidth();
-                float yfin = yinicio+cara_actual.getHeight();
-                canvas.drawRoundRect(new RectF(xinicio,yinicio,xfin,yfin),2,2,paint);
-            }
-      //  }
         imv.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
     }
 
