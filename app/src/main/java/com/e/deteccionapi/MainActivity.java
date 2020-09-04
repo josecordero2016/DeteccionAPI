@@ -3,12 +3,18 @@ package com.e.deteccionapi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.RectF;
 import android.graphics.drawable.BitmapDrawable;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Handler;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.api.client.extensions.android.json.AndroidJsonFactory;
 import com.google.api.client.http.javanet.NetHttpTransport;
@@ -20,6 +26,7 @@ import com.google.api.services.vision.v1.model.BatchAnnotateImagesResponse;
 import com.google.api.services.vision.v1.model.FaceAnnotation;
 import com.google.api.services.vision.v1.model.Feature;
 import com.google.api.services.vision.v1.model.Image;
+import com.google.api.services.vision.v1.model.Landmark;
 
 import org.apache.commons.io.output.ByteArrayOutputStream;
 
@@ -30,6 +37,8 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     Vision vision;
+    List<Landmark> puntos;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -37,14 +46,14 @@ public class MainActivity extends AppCompatActivity {
 
 
         Vision.Builder visionBuilder = new Vision.Builder(new NetHttpTransport(),
-                new AndroidJsonFactory(),  null);
+                new AndroidJsonFactory(), null);
         visionBuilder.setVisionRequestInitializer(new
                 VisionRequestInitializer("AIzaSyB5MkIB5lNnQH1kC1tZ3ATeEsv7z66moKs"));
         vision = visionBuilder.build();
     }
 
-    public Image getImageToProcess(){
-        ImageView imagen = (ImageView)findViewById(R.id.imgImgToProcess);
+    public Image getImageToProcess() {
+        ImageView imagen = (ImageView) findViewById(R.id.imgImgToProcess);
         BitmapDrawable drawable = (BitmapDrawable) imagen.getDrawable();
         Bitmap bitmap = drawable.getBitmap();
 
@@ -60,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
         return inputImage;
     }
 
-    public BatchAnnotateImagesRequest setBatchRequest(String TipoSolic, Image inputImage){
+    public BatchAnnotateImagesRequest setBatchRequest(String TipoSolic, Image inputImage) {
         Feature desiredFeature = new Feature();
         desiredFeature.setType(TipoSolic);
 
@@ -69,29 +78,26 @@ public class MainActivity extends AppCompatActivity {
         request.setFeatures(Arrays.asList(desiredFeature));
 
 
-        BatchAnnotateImagesRequest batchRequest =  new BatchAnnotateImagesRequest();
+        BatchAnnotateImagesRequest batchRequest = new BatchAnnotateImagesRequest();
         batchRequest.setRequests(Arrays.asList(request));
         return batchRequest;
     }
 
 
-    public void ProcesarTexto(View View){
+    public void ProcesarTexto(View View) {
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
                 BatchAnnotateImagesRequest batchRequest = setBatchRequest("FACE_DETECTION",
                         getImageToProcess());
                 try {
-
-                    Vision.Images.Annotate  annotateRequest = vision.images().annotate(batchRequest);
+                    Vision.Images.Annotate annotateRequest = vision.images().annotate(batchRequest);
                     annotateRequest.setDisableGZipContent(true);
-                    BatchAnnotateImagesResponse response  = annotateRequest.execute();
+                    BatchAnnotateImagesResponse response = annotateRequest.execute();
+                    List<FaceAnnotation> faces = response.getResponses().get(0).getFaceAnnotations();
 
-
-                    List<FaceAnnotation> faces = response.getResponses().get(0).getFaceAnnotations()
-
-                            //final StringBuilder message = new StringBuilder("Se ha encontrado los siguientes Objetos:\n\n");
-                            // final TextAnnotation text = response.getResponses().get(0).getFullTextAnnotation();
+                    //final StringBuilder message = new StringBuilder("Se ha encontrado los siguientes Objetos:\n\n");
+                    // final TextAnnotation text = response.getResponses().get(0).getFullTextAnnotation();
                     /*List<EntityAnnotation> labels = response.getResponses().get(0).getLabelAnnotations();
                     if (labels != null) {
                         for (EntityAnnotation label : labels)
@@ -100,21 +106,17 @@ public class MainActivity extends AppCompatActivity {
                     } else {
                         message.append("No hay ningún Objeto");
                     }*/
-
-
-                            ;int numberOfFaces = faces.size();
+                    int numberOfFaces = faces.size();
                     String likelihoods = "";
-                    for(int i=0; i<numberOfFaces; i++)
-                        likelihoods += "\n Rostro " + i + "  "  +
-                                faces.get(i).getJoyLikelihood();
-
-                    final String message =   "Esta imagen tiene " + numberOfFaces + " rostros " + likelihoods;
-
-
+                    for (int i = 0; i < numberOfFaces; i++) {
+                        likelihoods += "\n Rostro " + i + "  " + faces.get(i).getJoyLikelihood();
+                        puntos = faces.get(i).getLandmarks();
+                    }
+                    final String message = "Esta imagen tiene " + numberOfFaces + " rostros " + likelihoods;
                     runOnUiThread(new Runnable() {
                         @Override
                         public void run() {
-                            TextView imageDetail = (TextView)findViewById(R.id.txtResult);
+                            TextView imageDetail = (TextView) findViewById(R.id.txtResult);
                             //imageDetail.setText(text.getText());
                             imageDetail.setText(message.toString());
                         }
@@ -122,10 +124,32 @@ public class MainActivity extends AppCompatActivity {
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
+                try {DibujarCuadros();}catch (Exception e){}
             }
         });
+
+
+
+
     }
 
+
+    public void DibujarCuadros(){
+
+        ImageView imv = findViewById(R.id.imgImgToProcess);
+        Bitmap img_original = ((BitmapDrawable) imv.getDrawable()).getBitmap();
+        Bitmap tempBitmap = Bitmap.createBitmap(img_original.getWidth(), img_original.getHeight(), Bitmap.Config.RGB_565);
+        Canvas canvas = new Canvas(tempBitmap);
+        canvas.drawBitmap(img_original, 0, 0, null);
+        Paint paint = new Paint();
+        paint.setColor(Color.RED);
+        paint.setStrokeWidth(5);
+        paint.setStyle(Paint.Style.STROKE);
+        //canvas.drawRoundRect(new RectF(puntos.get(31).getPosition().getX(), puntos.get(31).getPosition().getY(), puntos.get(32).getPosition().getX(), puntos.get(32).getPosition().getY()), 2, 2, paint);
+        //canvas.drawRoundRect(, paint);
+        canvas.drawRect(puntos.get(31).getPosition().getX(), puntos.get(31).getPosition().getY(), puntos.get(32).getPosition().getX(), puntos.get(32).getPosition().getY(),paint);
+        imv.setImageDrawable(new BitmapDrawable(getResources(), tempBitmap));
+    }
 
     private Bitmap scaleBitmapDown(Bitmap bitmap, int maxDimension) {
         int originalWidth = bitmap.getWidth();
